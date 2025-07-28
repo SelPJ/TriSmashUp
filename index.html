@@ -119,6 +119,32 @@
 
 };
 
+    function loadDataFromFirestore() {
+  if (!userUID) return; // pas d'utilisateur connecté
+
+  db.collection('users').doc(userUID).get()
+    .then(doc => {
+      if (doc.exists) {
+        data = doc.data().words || {};
+        saveData();
+        displayWords();
+        updateCategoryDropdowns();
+        loginMessage.style.color = 'green';
+        loginMessage.textContent = `Données Firestore chargées avec succès ✅`;
+      } else {
+        data = {};
+        saveData();
+        displayWords();
+        updateCategoryDropdowns();
+        loginMessage.style.color = 'orange';
+        loginMessage.textContent = `Aucune donnée Firestore trouvée, liste vide.`;
+      }
+    })
+    .catch(err => {
+      loginMessage.style.color = 'red';
+      loginMessage.textContent = `Erreur de connexion Firestore : ${err.message}`;
+    });
+}
     
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
@@ -146,7 +172,7 @@ auth.onAuthStateChanged(user => {
     userUID = user.uid;
     loadDataFromFirestore();
     loginMessage.style.color = 'green';
-    loginMessage.textContent = `Connecté en tant que ${user.email}`;
+    loginMessage.textContent = `Connecté en tant que ${user.email} — Connexion à Firestore réussie ✅`;
   } else {
     userUID = null;
     loginMessage.style.color = 'red';
@@ -156,6 +182,7 @@ auth.onAuthStateChanged(user => {
     updateCategoryDropdowns();
   }
 });
+
 
 
     auth.onAuthStateChanged(user => {
