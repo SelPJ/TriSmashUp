@@ -457,6 +457,40 @@ updateCategoryDropdowns();
 
   </script>
 
+<script>
+  // 1. Déclaration de la fonction async pour charger les données Firestore
+  async function loadDataFromFirestore() {
+    const db = firebase.firestore();
+    const data = {};
+
+    try {
+      const snapshot = await db.collection('categories').get();
+
+      snapshot.forEach(doc => {
+        data[doc.id] = doc.data().words || [];
+      });
+
+      console.log('Données chargées depuis Firestore:', data);
+      return data;
+
+    } catch (error) {
+      console.error('Erreur lors du chargement des données Firestore :', error);
+      return {};
+    }
+  }
+
+  // 2. Fonction d'initialisation qui charge et affiche les données
+  async function init() {
+    data = await loadDataFromFirestore();
+    displayWords();
+    updateCategoryDropdowns();
+  }
+
+  // 3. Appel de l'initialisation au chargement
+  init();
+</script>
+
+  
    <script>
 
      function login() {
