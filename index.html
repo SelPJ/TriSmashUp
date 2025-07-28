@@ -138,7 +138,7 @@ showPasswordCheckbox.addEventListener('change', () => {
     function loadDataFromFirestore() {
   if (!userUID) return; // pas d'utilisateur connecté
 
-  db.collection('users').doc(userUID).get()
+  db.collection('listes').doc(userUID).get()  // <- ici 'listes' au lieu de 'users'
     .then(doc => {
       if (doc.exists) {
         data = doc.data().words || {};
@@ -161,6 +161,7 @@ showPasswordCheckbox.addEventListener('change', () => {
       loginMessage.textContent = `Erreur de connexion Firestore : ${err.message}`;
     });
 }
+
     
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
@@ -244,7 +245,19 @@ const randomResult = document.getElementById('randomResult');
 
 function saveData() {
   localStorage.setItem('wordData', JSON.stringify(data));
+
+  if (userUID) {
+    // Ecriture dans Firestore
+    db.collection('listes').doc(userUID).set({ words: data })
+      .then(() => {
+        console.log('Données sauvegardées dans Firestore');
+      })
+      .catch((error) => {
+        console.error('Erreur lors de la sauvegarde Firestore:', error);
+      });
+  }
 }
+
 
 function loadData() {
   const saved = localStorage.getItem('wordData');
