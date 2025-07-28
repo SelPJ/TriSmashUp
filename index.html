@@ -70,6 +70,10 @@
   <h1>🗂️ Trieur de mots</h1>
 
   <div>
+    <input type="email" id="email" placeholder="Email" />
+<input type="password" id="password" placeholder="Mot de passe" />
+<button onclick="login()">Se connecter / S’inscrire</button>
+    <br>
     <input type="text" id="wordInput" placeholder="Mot à ajouter" />
     <input type="text" id="categoryInput" placeholder="Catégorie" />
     <button onclick="addWord()">Ajouter</button>
@@ -399,5 +403,29 @@ displayWords();
 updateCategoryDropdowns();
 
   </script>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script>
+const auth = firebase.auth();
+
+async function login() {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  try {
+    // Essaye de connecter l’utilisateur
+    await auth.signInWithEmailAndPassword(email, password);
+    alert("Connecté !");
+  } catch(error) {
+    if(error.code === 'auth/user-not-found') {
+      // Si pas d’utilisateur, crée un compte
+      await auth.createUserWithEmailAndPassword(email, password);
+      alert("Compte créé et connecté !");
+    } else {
+      alert(error.message);
+    }
+  }
+}
+</script>
+  
 </body>
 </html>
