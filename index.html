@@ -64,6 +64,9 @@
       cursor: pointer;
     }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -404,28 +407,24 @@ updateCategoryDropdowns();
 
   </script>
 
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script>
-const auth = firebase.auth();
+   <script>
+    // Config Firebase
+    const firebaseConfig = {
+      apiKey: "TA_CLE_API",
+      authDomain: "TON_PROJET.firebaseapp.com",
+      projectId: "TON_PROJET",
+      storageBucket: "TON_PROJET.appspot.com",
+      messagingSenderId: "TON_ID",
+      appId: "TON_APP_ID"
+    };
 
-async function login() {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  try {
-    // Essaye de connecter l’utilisateur
-    await auth.signInWithEmailAndPassword(email, password);
-    alert("Connecté !");
-  } catch(error) {
-    if(error.code === 'auth/user-not-found') {
-      // Si pas d’utilisateur, crée un compte
-      await auth.createUserWithEmailAndPassword(email, password);
-      alert("Compte créé et connecté !");
-    } else {
-      alert(error.message);
-    }
-  }
-}
-</script>
+    // Initialisation Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+     
+  </script>
   
 </body>
 </html>
