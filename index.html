@@ -123,7 +123,30 @@
     const db = firebase.firestore();
 
     let data = {};
-    let userUID = null;
+let userUID = null;
+
+function loadData() {
+  const saved = localStorage.getItem('wordData');
+  if (saved) {
+    try {
+      data = JSON.parse(saved);
+    } catch (e) {
+      console.error('Erreur lors du chargement des données :', e);
+      data = {};
+    }
+  }
+}
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    userUID = user.uid;
+    loadDataFromFirestore();
+  } else {
+    loadData();          // Si pas connecté, on charge le localStorage
+    displayWords();
+    updateCategoryDropdowns();
+  }
+});
 
     auth.onAuthStateChanged(user => {
       if (user) {
@@ -156,8 +179,6 @@
     }
   </script>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
   <script>
     const wordInput = document.getElementById('wordInput');
 const categoryInput = document.getElementById('categoryInput');
@@ -165,8 +186,6 @@ const wordListDiv = document.getElementById('wordList');
 const randomCat1 = document.getElementById('randomCat1');
 const randomCat2 = document.getElementById('randomCat2');
 const randomResult = document.getElementById('randomResult');
-
-let data = {};
 
 function saveData() {
   localStorage.setItem('wordData', JSON.stringify(data));
@@ -457,82 +476,5 @@ updateCategoryDropdowns();
 
   </script>
 
-<script>
-  // 1. Déclaration de la fonction async pour charger les données Firestore
-  async function loadDataFromFirestore() {
-    const db = firebase.firestore();
-    const data = {};
-
-    try {
-      const snapshot = await db.collection('categories').get();
-
-      snapshot.forEach(doc => {
-        data[doc.id] = doc.data().words || [];
-      });
-
-      console.log('Données chargées depuis Firestore:', data);
-      return data;
-
-    } catch (error) {
-      console.error('Erreur lors du chargement des données Firestore :', error);
-      return {};
-    }
-  }
-
-  // 2. Fonction d'initialisation qui charge et affiche les données
-  async function init() {
-    data = await loadDataFromFirestore();
-    displayWords();
-    updateCategoryDropdowns();
-  }
-
-  // 3. Appel de l'initialisation au chargement
-  init();
-</script>
-
-  
-   <script>
-
-     function login() {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-
-  auth.signInWithEmailAndPassword(email, password)
-    .then(() => {
-      alert('Connexion réussie !');
-      loadFromFirestore();
-    })
-    .catch((error) => {
-      if (error.code === 'auth/user-not-found') {
-        // Si l'utilisateur n'existe pas, on l'inscrit
-        auth.createUserWithEmailAndPassword(email, password)
-          .then(() => {
-            alert('Inscription réussie !');
-            saveToFirestore(); // On sauvegarde la base vide
-          })
-          .catch((err) => alert('Erreur inscription : ' + err.message));
-      } else {
-        alert('Erreur connexion : ' + error.message);
-      }
-    });
-}    
-    // Config Firebase
-    const firebaseConfig = {
-      apiKey: "TA_CLE_API",
-      authDomain: "TON_PROJET.firebaseapp.com",
-      projectId: "TON_PROJET",
-      storageBucket: "TON_PROJET.appspot.com",
-      messagingSenderId: "TON_ID",
-      appId: "TON_APP_ID"
-    };
-
-    // Initialisation Firebase
-    firebase.initializeApp(firebaseConfig);
-
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-     
-  </script>
-  
 </body>
 </html>
