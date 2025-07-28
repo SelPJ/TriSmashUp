@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Trieur de mots</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 700px;
+      margin: 2rem auto;
+      padding: 1rem;
+    }
+    input, button {
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
+    .category {
+      margin-top: 1.5rem;
+    }
+    .category h3 {
+      border-bottom: 1px solid #ccc;
+    }
+    .letter-group {
+      margin-top: 1rem;
+      margin-left: 1rem;
+    }
+    .letter-group h4 {
+      margin: 0.5rem 0 0.25rem 0;
+      font-weight: bold;
+      color: #333;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 0.1rem;
+    }
+    ul {
+      list-style: none;
+      padding-left: 1rem;
+      margin-top: 0.2rem;
+    }
+    li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 0.25rem 0;
+    }
+    li .actions {
+      display: flex;
+      gap: 0.25rem;
+    }
+    .letter-separator {
+  font-weight: bold;
+  margin: 0.75rem 0 0.5rem;
+  text-transform: uppercase;
+  color: #333;
+  /* Optionnel : fond léger et centrage */
+  background: #eee;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  text-align: center;
+  width: fit-content;
+}
+
+    button {
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🗂️ Trieur de mots</h1>
+
+  <div>
+    <input type="text" id="wordInput" placeholder="Mot à ajouter" />
+    <input type="text" id="categoryInput" placeholder="Catégorie" />
+    <button onclick="addWord()">Ajouter</button>
+    <button onclick="exportPDF()">📄 PDF</button>
+    <button onclick="exportJSON()">💾 Export JSON</button>
+    <input
+      type="file"
+      id="importInput"
+      accept=".json"
+      onchange="importJSON()"
+      style="display: none;"
+    />
+    <button onclick="document.getElementById('importInput').click()">📂 Importer JSON</button>
+    <div style="margin-top: 1rem; border-top: 1px solid #ccc; padding-top: 1rem;">
+  <h3>🎲 Sélection aléatoire</h3>
+  <select id="randomCat1">
+    <option value="">-- Choisir catégorie 1 --</option>
+  </select>
+  <select id="randomCat2">
+    <option value="">-- Choisir catégorie 2 (facultatif) --</option>
+  </select>
+  <button onclick="pickRandom()">Tirer au sort</button>
+  <div id="randomResult" style="margin-top: 0.5rem; font-weight: bold;"></div>
+</div>
+
+  </div>
+
+  <div id="wordList"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <script>
+    const wordInput = document.getElementById('wordInput');
+const categoryInput = document.getElementById('categoryInput');
+const wordListDiv = document.getElementById('wordList');
+const randomCat1 = document.getElementById('randomCat1');
+const randomCat2 = document.getElementById('randomCat2');
+const randomResult = document.getElementById('randomResult');
+
+let data = {};
+
+function saveData() {
+  localStorage.setItem('wordData', JSON.stringify(data));
+}
+
+function loadData() {
+  const saved = localStorage.getItem('wordData');
+  if (saved) {
+    try {
+      data = JSON.parse(saved);
+    } catch (e) {
+      console.error('Erreur lors du chargement des données :', e);
+      data = {};
+    }
+  }
+}
+
+function addWord() {
+  const word = wordInput.value.trim();
+  const category = categoryInput.value.trim() || 'Sans catégorie';
+  if (!word) return;
+
+  if (!data[category]) data[category] = [];
+
+  if (!data[category].includes(word)) {
+    data[category].push(word);
+    data[category].sort((a, b) => a.localeCompare(b));
+    saveData();
+    displayWords();
+    updateCategoryDropdowns();
+  }
+
+  wordInput.value = '';
+}
+
+function deleteWord(category, word) {
+  data[category] = data[category].filter((w) => w !== word);
+  if (data[category].length === 0) delete data[category];
+  saveData();
+  displayWords();
+  updateCategoryDropdowns();
+}
+
+function editWord(category, oldWord) {
+  const newWord = prompt(`Modifier le mot "${oldWord}" :`, oldWord);
+  if (newWord && newWord.trim() !== '') {
+    const trimmed = newWord.trim();
+    if (!data[category].includes(trimmed)) {
+      data[category] = data[category].map((w) =>
+        w === oldWord ? trimmed : w
+      );
+      data[category].sort((a, b) => a.localeCompare(b));
+      saveData();
+      displayWords();
+    } else {
+      alert('Ce mot existe déjà dans cette catégorie.');
+    }
+  }
+}
+
+function renameCategory(oldCategory) {
+  const newCategory = prompt(`Renommer la catégorie "${oldCategory}" :`, oldCategory);
+  if (!newCategory || newCategory.trim() === '') return;
+
+  const trimmed = newCategory.trim();
+  if (trimmed === oldCategory) return;
+  if (data[trimmed]) {
+    alert('Cette catégorie existe déjà.');
+    return;
+  }
+
+  data[trimmed] = data[oldCategory];
+  delete data[oldCategory];
+  saveData();
+  displayWords();
+  updateCategoryDropdowns();
+}
+
+function displayWords() {
+  wordListDiv.innerHTML = '';
+
+  const sortedCategories = Object.keys(data).sort((a, b) => a.localeCompare(b));
+
+  for (const category of sortedCategories) {
+    const div = document.createElement('div');
+    div.className = 'category';
+
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.alignItems = 'center';
+    header.style.gap = '0.5rem';
+
+    const title = document.createElement('h3');
+    title.textContent = category;
+    title.style.margin = 0;
+
+    const editCatBtn = document.createElement('button');
+    editCatBtn.textContent = '✏️';
+    editCatBtn.title = 'Renommer la catégorie';
+    editCatBtn.onclick = () => renameCategory(category);
+
+    header.appendChild(title);
+    header.appendChild(editCatBtn);
+    div.appendChild(header);
+
+    const ul = document.createElement('ul');
+
+    let lastLetter = '';
+
+    for (const word of data[category]) {
+      const firstLetter = word[0].toUpperCase();
+      if (firstLetter !== lastLetter) {
+        const letterHeading = document.createElement('li');
+        letterHeading.textContent = `- ${firstLetter} -`;
+        letterHeading.className = 'letter-separator';
+        ul.appendChild(letterHeading);
+        lastLetter = firstLetter;
+      }
+
+      const li = document.createElement('li');
+
+      const wordSpan = document.createElement('span');
+      wordSpan.textContent = word;
+
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'actions';
+
+      const editBtn = document.createElement('button');
+      editBtn.textContent = '✏️';
+      editBtn.title = 'Modifier le mot';
+      editBtn.onclick = () => editWord(category, word);
+
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '🗑️';
+      delBtn.title = 'Supprimer le mot';
+      delBtn.onclick = () => deleteWord(category, word);
+
+      actionsDiv.appendChild(editBtn);
+      actionsDiv.appendChild(delBtn);
+
+      li.appendChild(wordSpan);
+      li.appendChild(actionsDiv);
+      ul.appendChild(li);
+    }
+
+    // Total items dans la catégorie
+    const totalLi = document.createElement('li');
+    totalLi.style.marginTop = '0.5rem';
+    totalLi.style.fontWeight = 'bold';
+    totalLi.textContent = `Total : ${data[category].length} items`;
+    ul.appendChild(totalLi);
+
+    div.appendChild(ul);
+    wordListDiv.appendChild(div);
+  }
+}
+
+
+function updateCategoryDropdowns() {
+  const categories = Object.keys(data).sort((a, b) => a.localeCompare(b));
+
+  [randomCat1, randomCat2].forEach(select => {
+    select.innerHTML = '<option value="">-- Choisir une catégorie --</option>';
+    categories.forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat;
+      opt.textContent = cat;
+      select.appendChild(opt);
+    });
+  });
+}
+
+function pickRandom() {
+  const cat1 = randomCat1.value;
+  const cat2 = randomCat2.value;
+  let resultText = '';
+
+  if (cat1 && data[cat1]?.length) {
+    const chosen1 = data[cat1][Math.floor(Math.random() * data[cat1].length)];
+    resultText += `🎯 ${cat1} : ${chosen1}\n`;
+  }
+
+  if (cat2 && cat2 !== cat1 && data[cat2]?.length) {
+    const chosen2 = data[cat2][Math.floor(Math.random() * data[cat2].length)];
+    resultText += `🎯 ${cat2} : ${chosen2}`;
+  }
+
+  if (resultText === '') {
+    randomResult.textContent = 'Aucune catégorie sélectionnée ou vide.';
+  } else {
+    randomResult.textContent = resultText;
+  }
+}
+
+async function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  let y = 10;
+  const sortedCategories = Object.keys(data).sort((a, b) => a.localeCompare(b));
+
+  for (const category of sortedCategories) {
+    doc.setFontSize(14);
+    doc.text(category, 10, y);
+    y += 7;
+
+    doc.setFontSize(12);
+
+    let lastLetter = '';
+
+    for (const word of data[category]) {
+      const firstLetter = word[0].toUpperCase();
+
+      if (firstLetter !== lastLetter) {
+        // Lettre séparatrice avec format - B -
+        doc.setFontSize(12);
+        doc.setTextColor(100); // gris un peu plus clair
+        doc.text(`- ${firstLetter} -`, 15, y);
+        y += 7;
+        doc.setTextColor(0); // remet en noir
+        lastLetter = firstLetter;
+      }
+
+      doc.text(`- ${word}`, 20, y);
+      y += 6;
+
+      if (y > 280) {
+        doc.addPage();
+        y = 10;
+      }
+    }
+
+    // Total items dans la catégorie
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text(`Total : ${data[category].length} items`, 15, y);
+    y += 10;
+    doc.setFont(undefined, 'normal');
+  }
+
+  doc.save('liste-de-mots.pdf');
+}
+
+
+function exportJSON() {
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'liste-mots.json';
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+function importJSON() {
+  const input = document.getElementById('importInput');
+  const file = input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    try {
+      const importedData = JSON.parse(e.target.result);
+      if (typeof importedData === 'object') {
+        if (confirm('Importer ce fichier écrasera votre liste actuelle. Continuer ?')) {
+          data = importedData;
+          saveData();
+          displayWords();
+          updateCategoryDropdowns();
+        }
+      } else {
+        alert('Fichier invalide.');
+      }
+    } catch (err) {
+      alert('Erreur de lecture du fichier.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// Initialisation
+loadData();
+displayWords();
+updateCategoryDropdowns();
+
+  </script>
+</body>
+</html>
