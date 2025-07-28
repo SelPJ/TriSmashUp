@@ -89,6 +89,8 @@
     <button onclick="exportJSON()">💾 Export JSON</button>
     <input type="file" id="importInput" accept=".json" onchange="importJSON()" style="display: none;" />
     <button onclick="document.getElementById('importInput').click()">📂 Importer JSON</button>
+    <button onclick="saveToFirestore()">💾 Enregistrer sur Firestore</button>
+
 
     <div style="margin-top: 1rem; border-top: 1px solid #ccc; padding-top: 1rem;">
       <h3>🎲 Sélection aléatoire</h3>
@@ -159,6 +161,26 @@ showPasswordCheckbox.addEventListener('change', () => {
     .catch(err => {
       loginMessage.style.color = 'red';
       loginMessage.textContent = `Erreur de connexion Firestore : ${err.message}`;
+    });
+}
+
+    function saveToFirestore() {
+  if (!userUID) {
+    alert("Vous devez être connecté pour enregistrer dans Firestore.");
+    return;
+  }
+
+  loginMessage.style.color = 'black';
+  loginMessage.textContent = "Enregistrement en cours sur Firestore...";
+
+  db.collection('users').doc(userUID).set({ words: data })
+    .then(() => {
+      loginMessage.style.color = 'green';
+      loginMessage.textContent = "Données enregistrées avec succès sur Firestore ✅";
+    })
+    .catch((error) => {
+      loginMessage.style.color = 'red';
+      loginMessage.textContent = "Erreur lors de l'enregistrement : " + error.message;
     });
 }
 
